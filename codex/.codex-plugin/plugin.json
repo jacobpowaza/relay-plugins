@@ -1,7 +1,7 @@
 {
   "name": "relay",
   "description": "Relay progress-board integration for resumable Codex development work.",
-  "version": "0.2.0+codex.20260719",
+  "version": "0.3.0+codex.20260722",
   "author": {
     "name": "Relay"
   },

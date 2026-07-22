@@ -1,7 +1,7 @@
 {
   "name": "relay-progress",
   "description": "Always-active Relay progress-board integration for resumable Claude Code development work.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "Relay"
   },
@@ -33,6 +33,18 @@
             "timeout": 5,
             "async": true,
             "statusMessage": "Checking Relay checkpoint state"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/discovery-index.mjs\"",
+            "timeout": 5,
+            "async": true,
+            "statusMessage": "Updating Relay discovery index"
           }
         ]
       }
