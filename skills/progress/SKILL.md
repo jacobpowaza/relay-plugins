@@ -142,6 +142,17 @@ state before editing. Expand into broader inspection only when the active task
 requires it, the saved context is stale, files moved, architecture changed, or
 verification reveals inconsistencies.
 
+When the task needs adjacent code not named in the session-start packet, search
+Discovery before broad exploration:
+
+```sh
+node "$CLAUDE_PLUGIN_ROOT/scripts/discovery-search.mjs" --cwd "$PWD" --query "$FEATURE_OR_SYMBOL"
+```
+
+The result includes cached purposes, exports, dependencies, and related files.
+Open source only for details the index does not carry or for files reported as
+changed.
+
 Checkpoint when card starts, meaningful code changes land, decision is made, blocker appears, tests run, card completes, card changes, context compaction approaches, or session ends. Record concise evidence: changed files/symbols, commands, test results, known issues, remaining work, Git diff summary, next task. Use `record-context` for durable facts, `record-decision` for accepted/proposed choices, and `add-note` for card-local working notes.
 
 Never upload secrets, `.env` contents, private keys, tokens, cookies, or full sensitive files. Summaries and file references preferred over source snippets.
