@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadDiscoveryFromWorkspace, searchDiscovery } from "../core/discovery.js";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const progressScript = join(root, "scripts", "relay-progress.mjs");
@@ -79,6 +81,32 @@ function handleBody(body) {
               properties: { cwd: { type: "string", description: "Working directory to resume." } },
             },
           },
+          {
+            name: "relay_create_board",
+            description: "Create or resume a Relay board for the current user task, including an initial phase plan and cards. Use when Relay is invoked for a concrete implementation task.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                cwd: { type: "string", description: "Repository working directory." },
+                title: { type: "string", description: "Short board title." },
+                request: { type: "string", description: "The complete user request used to create the plan and initial cards." },
+              },
+              required: ["title", "request"],
+            },
+          },
+          {
+            name: "relay_discovery_search",
+            description: "Search Relay's persistent codebase index for files, responsibilities, exports, dependencies, and related files. Use before broad file exploration when Discovery is available.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                cwd: { type: "string", description: "Repository working directory." },
+                query: { type: "string", description: "Feature, symbol, file, or implementation question to look up." },
+                limit: { type: "number", description: "Maximum results (default 8, maximum 20)." },
+              },
+              required: ["query"],
+            },
+          },
         ],
       });
       return;
@@ -87,9 +115,25 @@ function handleBody(body) {
     if (message.method === "tools/call") {
       const name = message.params?.name;
       const args = message.params?.arguments ?? {};
-      const command = name === "relay_resume" ? "resume" : name === "relay_status" ? "status" : undefined;
+      const cwd = typeof args.cwd === "string" ? args.cwd : process.cwd();
+      if (name === "relay_discovery_search") {
+        const query = typeof args.query === "string" ? args.query.trim() : "";
+        if (query === "") throw new Error("A Discovery search query is required.");
+        const discovery = loadDiscoveryFromWorkspace(join(homedir(), "Library/Application Support/Relay/relay-data/workspace.json"), repositoryRoot(cwd));
+        if (discovery === null) throw new Error("No Relay Discovery index exists for this repository. Run Project Discovery first.");
+        const limit = typeof args.limit === "number" ? Math.max(1, Math.min(20, Math.floor(args.limit))) : 8;
+        const entries = searchDiscovery(discovery.entries, query, limit);
+        const output = JSON.stringify({ query, indexedFiles: discovery.discoveryCount, results: entries }, null, 2);
+        respond(message.id, { content: [{ type: "text", text: output }] });
+        return;
+      }
+      const command = name === "relay_resume" ? "resume" : name === "relay_status" ? "status" : name === "relay_create_board" ? "create-board" : undefined;
       if (command === undefined) throw new Error(`Unknown Relay tool: ${String(name)}`);
-      const output = runProgress(command, typeof args.cwd === "string" ? args.cwd : process.cwd());
+      const progressArgs = name === "relay_create_board"
+        ? ["--title", String(args.title ?? "Relay task")]
+        : [];
+      const input = name === "relay_create_board" ? String(args.request ?? "") : undefined;
+      const output = runProgress(command, cwd, progressArgs, input);
       respond(message.id, { content: [{ type: "text", text: output }] });
       return;
     }
@@ -103,13 +147,27 @@ function handleBody(body) {
   }
 }
 
-function runProgress(command, cwd) {
-  return execFileSync(process.execPath, [progressScript, command, "--cwd", cwd], {
+function runProgress(command, cwd, args = [], input) {
+  return execFileSync(process.execPath, [progressScript, command, "--cwd", cwd, ...args], {
     cwd,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["pipe", "pipe", "pipe"],
+    input,
     timeout: 5_000,
   }).trim();
+}
+
+function repositoryRoot(cwd) {
+  try {
+    return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 1_500,
+    }).trim();
+  } catch {
+    return cwd;
+  }
 }
 
 function respond(id, result) {

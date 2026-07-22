@@ -75,5 +75,11 @@ export declare function buildDiscoveryContextPacket(discovery: DiscoveryIndex, o
  * cases it was added for.
  */
 export declare function selectRelevantEntries(entries: DiscoveryEntry[], taskHint: string, limit?: number): DiscoveryEntry[];
+/**
+ * A compact lookup result for an agent that needs to orient to a feature.
+ * Unlike the session-start packet, this is callable mid-task so discovery is
+ * a real index rather than a one-time hint that the agent cannot revisit.
+ */
+export declare function searchDiscovery(entries: DiscoveryEntry[], query: string, limit?: number): Array<Pick<DiscoveryEntry, "filePath" | "purpose" | "importantExports" | "dependencies" | "relatedFiles" | "features" | "status">>;
 export declare function buildDiscoveryLine(repoRoot: string, discovery: DiscoveryIndex | null): string;
 //# sourceMappingURL=discovery.d.ts.map

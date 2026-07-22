@@ -10,6 +10,16 @@ agents:
 
 Relay board is persistent source of truth for long-running work. Repository code is source of truth for implementation state.
 
+## Invocation contract
+
+When the user invokes or mentions `@Relay` for a concrete implementation task,
+create the board immediately with `relay_create_board`. Pass the complete user
+request as `request` and a short task title as `title`. That tool persists the
+board, links the repository, and generates its initial phases and cards in one
+verified transaction. Do not merely suggest `/relay create-board`, and do not
+wait for a second instruction. For questions, status checks, or explicitly
+untracked tiny work, use `relay_status` instead.
+
 ## Token-saving goal
 
 Relay saves tokens during **context persistence, session handoffs, and task
@@ -52,6 +62,9 @@ the default). Pipe the full original user request:
 ```sh
 /relay create-board "$PROJECT_OR_FEATURE_NAME"
 ```
+
+In Codex, prefer the `relay_create_board` MCP tool above this slash-command
+example: it receives the full request and cannot lose it to command parsing.
 
 `create-board` is a single verified transaction: it persists the board through
 Relay app-owned storage, reads it back, and only reports success when the result
@@ -170,6 +183,12 @@ source-of-truth replacement. Confirm the code, Git diff, tests, and current
 state before editing. Expand into broader inspection only when the active task
 requires it, the saved context is stale, files moved, architecture changed, or
 verification reveals inconsistencies.
+
+When a task expands beyond the session-start hints, use
+`relay_discovery_search` before broad repository exploration. It returns the
+cached purpose, exports, dependencies, and related files for matching entries.
+Read source only for details the index does not carry or for files reported as
+changed.
 
 Checkpoint when card starts, meaningful code changes land, decision is made, blocker appears, tests run, card completes, card changes, context compaction approaches, or session ends. Record concise evidence: changed files/symbols, commands, test results, known issues, remaining work, Git diff summary, next task. Use `record-context` for durable facts, `record-decision` for accepted/proposed choices, and `add-note` for card-local working notes.
 

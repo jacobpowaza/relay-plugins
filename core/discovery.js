@@ -154,7 +154,14 @@ export function selectRelevantEntries(entries, taskHint, limit = 10) {
         return [];
     const scored = entries
         .map((entry) => {
-        const entryTokens = tokenize([entry.filePath, entry.purpose, ...entry.features, ...entry.importantExports].join(" "));
+        const entryTokens = tokenize([
+            entry.filePath,
+            entry.purpose,
+            ...entry.features,
+            ...entry.importantExports,
+            ...entry.dependencies,
+            ...entry.relatedFiles,
+        ].join(" "));
         // Score by distinct hint tokens hit, so an entry cannot inflate its rank
         // by repeating one word across its path, purpose and features.
         const score = hintTokens.filter((hintToken) => entryTokens.some((entryToken) => entryToken.startsWith(hintToken) || hintToken.startsWith(entryToken))).length;
@@ -163,6 +170,22 @@ export function selectRelevantEntries(entries, taskHint, limit = 10) {
         .filter((candidate) => candidate.score > 0);
     scored.sort((a, b) => b.score - a.score || a.entry.filePath.localeCompare(b.entry.filePath));
     return scored.slice(0, limit).map((candidate) => candidate.entry);
+}
+/**
+ * A compact lookup result for an agent that needs to orient to a feature.
+ * Unlike the session-start packet, this is callable mid-task so discovery is
+ * a real index rather than a one-time hint that the agent cannot revisit.
+ */
+export function searchDiscovery(entries, query, limit = 8) {
+    return selectRelevantEntries(entries, query, limit).map((entry) => ({
+        filePath: entry.filePath,
+        purpose: entry.purpose,
+        importantExports: entry.importantExports,
+        dependencies: entry.dependencies.slice(0, 6),
+        relatedFiles: entry.relatedFiles.slice(0, 6),
+        features: entry.features,
+        status: entry.status,
+    }));
 }
 export function buildDiscoveryLine(repoRoot, discovery) {
     if (!discovery)

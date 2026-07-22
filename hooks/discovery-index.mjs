@@ -120,6 +120,13 @@ function inferPurpose(relativePath, ext) {
   return `${(name[0] ?? "").toUpperCase()}${name.slice(1)} module`;
 }
 
+function buildPurpose(relativePath, kind, importantExports) {
+  const segments = relativePath.split(path.sep);
+  const area = segments.slice(0, -1).filter((part) => !["src", "app", "apps", "packages", "lib"].includes(part)).join(" / ");
+  const detail = importantExports.length > 0 ? ` Exports ${importantExports.slice(0, 4).join(", ")}.` : "";
+  return `${area ? `${kind} for ${area}` : kind}.${detail}`;
+}
+
 function buildEntry(repoRoot, relativePath, discoveredBy) {
   const absPath = path.resolve(repoRoot, relativePath);
   let content;
@@ -141,7 +148,7 @@ function buildEntry(repoRoot, relativePath, discoveredBy) {
   const now = new Date().toISOString();
   return {
     filePath: relativePath,
-    purpose: inferPurpose(relativePath, ext),
+    purpose: buildPurpose(relativePath, inferPurpose(relativePath, ext), importantExports),
     importantExports,
     relatedFiles: [],
     features: feature ? [feature] : [],
